@@ -4,6 +4,7 @@
 	Version: 1.1.1
 	Author: TemplateMonster
 	Author URI: http://www.templatemonster.com/
+	Text Domain: tm-wc-compare-wishlist
 */
 
 /*  This program is free software; you can redistribute it and/or modify
