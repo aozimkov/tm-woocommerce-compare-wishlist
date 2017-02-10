@@ -28,6 +28,13 @@ class TM_WC_Compare_Wishlist_Templater {
 	private $replace_data = array();
 
 	/**
+	 * Shortcode attributes
+	 *
+	 * @var array
+	 */
+	private $atts = array();
+
+	/**
 	 * A reference to an instance of this class.
 	 *
 	 * @since 1.0.0
@@ -201,42 +208,48 @@ class TM_WC_Compare_Wishlist_Templater {
 			}
 		}
 
-		$atts = $parsed_atts;
+		$this->atts = $parsed_atts;
+
+		return preg_replace_callback( $this->macros_regex(), array( $this, '__tmpl_callback' ), $content );
+	}
+
+	/**
+	 * Replace template callback
+	 *
+	 * @param  array $matches Matches array from regex.
+	 * @return string
+	 */
+	public function __tmpl_callback( $matches ) {
 
 		$replace_data = $this->replace_data;
+		$atts         = $this->atts;
 
-		return preg_replace_callback( $this->macros_regex(), function( $matches ) use ( $atts, $replace_data ) {
+		if ( ! is_array( $matches ) || empty( $matches ) ) {
+			return;
+		}
 
-			if ( ! is_array( $matches ) || empty( $matches ) ) {
+		$item   = trim( $matches[0], '%%' );
+		$arr    = explode( ' ', $item, 2 );
+		$macros = strtolower( $arr[0] );
 
-				return;
-			}
+		if ( array_key_exists( $macros, $atts ) ) {
 
-			$item   = trim( $matches[0], '%%' );
-			$arr    = explode( ' ', $item, 2 );
-			$macros = strtolower( $arr[0] );
+			$atts = isset( $arr[1] ) ? wp_parse_args( $atts[$macros], shortcode_parse_atts( $arr[1] ) ) : $atts[$macros];
 
-			if ( array_key_exists( $macros, $atts ) ) {
+		} else {
+			$atts = isset( $arr[1] ) ? shortcode_parse_atts( $arr[1] ) : array();
+		}
 
-				$atts = isset( $arr[1] ) ? wp_parse_args( $atts[$macros], shortcode_parse_atts( $arr[1] ) ) : $atts[$macros];
+		if ( ! isset( $replace_data[ $macros ] ) ) {
+			return;
+		}
 
-			} else {
+		$callback = $replace_data[ $macros ];
 
-				$atts = isset( $arr[1] ) ? shortcode_parse_atts( $arr[1] ) : array();
-			}
-			if ( ! isset( $replace_data[ $macros ] ) ) {
-
-				return;
-			}
-			$callback = $replace_data[ $macros ];
-
-			if ( ! is_callable( $callback ) ) {
-
-				return;
-			}
-			return call_user_func( $callback, $atts );
-
-		}, $content );
+		if ( ! is_callable( $callback ) ) {
+			return;
+		}
+		return call_user_func( $callback, $atts );
 	}
 
 	/**
